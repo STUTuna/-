@@ -1,5 +1,37 @@
 import requests
+import urllib.parse
 from bs4 import BeautifulSoup
+import re
+
+baseUrl = "https://www.ouyun.com.tw"
+
+
+# 移除價格資訊
+def removePrice(text):
+    pattern = r"\$\d+"  # 匹配$后面的数字
+    filtered_text = re.sub(pattern, "", text)
+    return filtered_text
+
+
+# 移除提醒文字
+def removeReminder(text):
+    pattern = r"本圖片顏色僅供參考.*|產品尺寸、規格若有變更.*"  # 匹配提醒文字的模式
+    filtered_text = re.sub(pattern, "", text)
+    return filtered_text
+
+
+# 移除多餘的空行
+def removeExtraLines(text):
+    filtered_text = re.sub(r"\n\s*\n", "\n", text)
+    return filtered_text.strip()
+
+
+# 過濾說明文字
+def filterDescription(text):
+    filtered_text = removePrice(text)
+    filtered_text = removeReminder(filtered_text)
+    filtered_text = removeExtraLines(filtered_text)
+    return filtered_text
 
 
 # 檢查有沒有分頁 根據class pagination是否存在來判斷
@@ -38,11 +70,37 @@ def getProductLinks(menuLink) -> list:
     product_list = ul_block.find_all("li")
     # 遍曆産品列錶並提取所需信息
     for product in product_list:
-        product_name = product.find("div", class_="name").text.strip()
         # 獲取産品詳情鏈接
-        product_link = product.find("a", text="查看更多").get("href")
-        productLinks.append(product_link)
+        productLink = product.find("a", string="查看更多").get("href")
+        productLinks.append(productLink)
     return productLinks
+
+
+# 取得產品詳情頁面的產品信息
+def getProductDetail(productLink):
+    product = {}  # 產品
+    # 發送GET請求獲取頁面內容
+    response = requests.get(productLink)
+    html_content = response.text
+    # 使用BeautifulSoup解析頁面內容
+    soup = BeautifulSoup(html_content, "html.parser")
+    # 獲取產品名稱
+    product_name = soup.find("div", class_="product-name").text.strip()
+    # 獲取產品說明
+    product_description = soup.find("div", class_="product-text").text.strip()
+    # 獲取所有產品圖片連結 父元素為 ul list-h
+    product_images = soup.find("ul", class_="list-h").find_all("img")
+    product_images_links = []
+    # 遍歷產品圖片連結
+    for product_image in product_images:
+        # 取得完整的圖片連結
+        full_img_path = urllib.parse.urljoin(baseUrl, product_image.get("src"))
+        product_images_links.append(full_img_path)
+
+    product["name"] = product_name
+    product["description"] = filterDescription(product_description)
+    product["images"] = product_images_links
+    return product
 
 
 # 主函數
@@ -69,7 +127,15 @@ def main():
         allProductLinks.extend(singlePageProductLinks)
 
     print("所有產品連結:", allProductLinks)
-    # 獲取產品詳情頁面的產品信息
+
+    # 遍歷產品 獲取所有產品詳情頁面的產品信息
+    for productLink in allProductLinks:
+        product = getProductDetail(productLink)
+        print("產品名稱:", product["name"])
+        print("產品說明:", product["description"])
+        print("產品圖片連結:", product["images"])
+        print("=====================================")
+
     return
     ul_block = soup.find("ul", class_="product-list")
     # 找到所有包含産品信息的<li>元素
