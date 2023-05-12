@@ -137,18 +137,6 @@ def main():
         print("=====================================")
 
     return
-    ul_block = soup.find("ul", class_="product-list")
-    # 找到所有包含産品信息的<li>元素
-    product_list = ul_block.find_all("li")
-
-    # 遍曆産品列錶並提取所需信息
-    for product in product_list:
-        # 取得產品名稱
-        name_element = product.find("div", class_="name").text.strip()
-        # 獲取産品詳情鏈接
-        detail_link = product.find("a", text="查看更多").get("href")
-        print("産品名稱:", name_element)
-        print("産品鏈接:", detail_link)
 
 
 main()
