@@ -2,8 +2,26 @@ import requests
 import urllib.parse
 from bs4 import BeautifulSoup
 import re
+import csv
 
 baseUrl = "https://www.ouyun.com.tw"
+
+# 匯出CSV檔案
+
+
+def exportToCsv(products, filename):
+    print("匯出CSV檔案...")
+    print("檔案名稱: " + filename)
+    print("產品數量: " + str(len(products)))
+
+    # fieldnames = ["description", "images", "name"]
+    fieldnames = ["名稱", "描述", "分類", "圖片"]
+
+    with open(filename, mode='w', encoding='utf-8', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        for product in products:
+            writer.writerow(product)
 
 
 # 移除價格資訊
@@ -97,24 +115,31 @@ def getProductDetail(productLink):
         full_img_path = urllib.parse.urljoin(baseUrl, product_image.get("src"))
         product_images_links.append(full_img_path)
 
-    product["name"] = product_name
-    product["description"] = filterDescription(product_description)
-    product["images"] = product_images_links
+    product["名稱"] = product_name
+    product["描述"] = filterDescription(product_description)
+    product["圖片"] = ",".join(product_images_links)  # 圖片連結陣列轉字串
     return product
 
 
 # 主函數
 def main():
-    category_url = "https://www.ouyun.com.tw/products/1_10/1.htm"  # 主管桌
+    csvFilenamePath = "./ouyun.csv"  # CSV檔案名稱
+    # categoryUrl = "https://www.ouyun.com.tw/products/1_10/1.htm"  # 主管桌
+    categoryUrl = "https://www.ouyun.com.tw/products/1_26/1.htm"  # 會議桌
+
     allProductLinks = []  # 所有產品連結
-    pageLinks = [category_url]  # 分頁連結
+    products = []  # 產品
+    pageLinks = [categoryUrl]  # 分頁連結
     # 發送GET請求獲取頁面內容
-    response = requests.get(category_url)
+    response = requests.get(categoryUrl)
     html_content = response.text
 
     # 使用BeautifulSoup解析頁麵內容
     soup = BeautifulSoup(html_content, "html.parser")
 
+    # 取得分類名稱 連結要和categoryUrl一樣
+    category_name = soup.find_all("li", class_="active")[3].text.strip()
+    csvFilenamePath = "./" + category_name + ".csv"
     # 若有分頁 就獲取分頁連結
     if hasPagination(soup):
         # 獲取所有分頁連結
@@ -126,16 +151,21 @@ def main():
         # 將每個分頁的產品連結加入到所有產品連結中
         allProductLinks.extend(singlePageProductLinks)
 
-    print("所有產品連結:", allProductLinks)
-
+    print("所有產品連結已取得")
+    print("需要處理的產品數量:", len(allProductLinks))
     # 遍歷產品 獲取所有產品詳情頁面的產品信息
     for productLink in allProductLinks:
+        # 印出需要處理的產品數量
+        # 印出目前處理的第幾個產品
+        print("正在處理第", allProductLinks.index(productLink) + 1, "個產品")
+        # 獲取產品詳情頁面的產品信息
         product = getProductDetail(productLink)
-        print("產品名稱:", product["name"])
-        print("產品說明:", product["description"])
-        print("產品圖片連結:", product["images"])
-        print("=====================================")
+        product["分類"] = category_name
+        products.append(product)
 
+    print("所有產品:", products)
+    # 將產品資訊寫入CSV文件
+    exportToCsv(products, csvFilenamePath)
     return
 
 
