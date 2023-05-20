@@ -3,12 +3,12 @@ import urllib.parse
 from bs4 import BeautifulSoup
 import re
 import csv
+import os
 
 baseUrl = "https://www.ouyun.com.tw"
 
+
 # 匯出CSV檔案
-
-
 def exportToCsv(products, filename):
     print("匯出CSV檔案...")
     print("檔案名稱: " + filename)
@@ -24,9 +24,25 @@ def exportToCsv(products, filename):
             writer.writerow(product)
 
 
-# 移除價格資訊
+# 移除價格資訊 (包含W價格) 規則: 1. 移除$前面一個的W和數字 2. 移除$後面的數字
+# input: "整組　W197 x D180 x H75 公分 (桌面 : D88公分)　W356　$89000"
+# output: "整組　W197 x D180 x H75 公分 (桌面 : D88公分)"
+def removePriceWithW(text):
+    pattern = r"W\d+\s\$[\d,]+"
+    filtered_text = re.sub(pattern, "", text)
+    return filtered_text
+
+
+# 移除價格資訊 (包含V價格)
+def removePriceWithV(text):
+    pattern = r"V\d+\s\$[\d,]+"
+    filtered_text = re.sub(pattern, "", text)
+    return filtered_text
+
+
+# 移除價格資訊 $後面的數字
 def removePrice(text):
-    pattern = r"\$\d+"  # 匹配$后面的数字
+    pattern = r"\$[\d,]+"  # 匹配價格的模式
     filtered_text = re.sub(pattern, "", text)
     return filtered_text
 
@@ -34,6 +50,13 @@ def removePrice(text):
 # 移除提醒文字
 def removeReminder(text):
     pattern = r"本圖片顏色僅供參考.*|產品尺寸、規格若有變更.*"  # 匹配提醒文字的模式
+    filtered_text = re.sub(pattern, "", text)
+    return filtered_text
+
+
+# 移除目錄年份 e.g. * 2021目錄 / 621-6
+def removeMenuYear(text):
+    pattern = r"\*\s\d+目錄\s\/\s\d+-\d+"
     filtered_text = re.sub(pattern, "", text)
     return filtered_text
 
@@ -46,8 +69,13 @@ def removeExtraLines(text):
 
 # 過濾說明文字
 def filterDescription(text):
-    filtered_text = removePrice(text)
-    filtered_text = removeReminder(filtered_text)
+    filtered_text = text
+    filtered_text = removePriceWithW(filtered_text)  # 移除價格資訊(包含W後面的數字)
+    filtered_text = removePriceWithV(filtered_text)  # 移除價格資訊(包含V後面的數字)
+    filtered_text = removePrice(filtered_text)  # 移除價格資訊($後面的數字)
+    # 以上有順序性 不可改變
+    filtered_text = removeMenuYear(filtered_text)  # 移除目錄年份
+    filtered_text = removeReminder(filtered_text)  # 移除提醒文字
     filtered_text = removeExtraLines(filtered_text)
     return filtered_text
 
@@ -116,21 +144,58 @@ def getProductDetail(productLink):
         product_images_links.append(full_img_path)
 
     product["名稱"] = product_name
-    product["描述"] = filterDescription(product_description)
+    product["描述"] = product_description
     product["圖片"] = ",".join(product_images_links)  # 圖片連結陣列轉字串
     return product
 
 
-def test():
-    print("test")
+def filter_description(csv_file, new_csv_folder):
+    # 根據csv_file的路徑，建立新的csv檔案路徑
+    new_csv_file = os.path.join(new_csv_folder, os.path.basename(csv_file))
 
+    print("in filter_description")
+
+    filtered_rows = []  # 存儲過濾後的資料行
+    # 開啟CSV檔案並讀取內容
+    with open(csv_file, 'r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        fieldnames = reader.fieldnames
+
+        # 遍歷每一行資料
+        for row in reader:
+            description = row['描述']
+            # 進行描述過濾
+            filtered_description = filterDescription(description)
+            # 更新該行資料的描述欄位
+            row['描述'] = filtered_description
+            filtered_rows.append(row)
+
+    # 覆寫CSV檔案，將過濾後的資料寫到新檔案中
+    with open(new_csv_file, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(filtered_rows)
+
+    print("過濾完成")
+
+
+def apply_description_filter(description):
+    # 在這裡使用你自己的過濾邏輯
+    # 以下是一個示例：將文字中的數字移除
+    filtered_description = re.sub(r'\d+', '', description)
+    return filtered_description
 
 # 主函數
+
+
 def main(categoryUrl):
+    # 存放的資料夾
+    saveFolder = "./raw_data/"
     csvFilenamePath = "./ouyun.csv"  # CSV檔案名稱
     allProductLinks = []  # 所有產品連結
     products = []  # 產品
     pageLinks = [categoryUrl]  # 分頁連結
+    print("開始爬取產品資訊...")
     # 發送GET請求獲取頁面內容
     response = requests.get(categoryUrl)
     html_content = response.text
@@ -140,7 +205,8 @@ def main(categoryUrl):
 
     # 取得分類名稱 連結要和categoryUrl一樣
     category_name = soup.find_all("li", class_="active")[3].text.strip()
-    csvFilenamePath = "./" + category_name + ".csv"
+    csvFilenamePath = os.path.join(saveFolder, category_name + ".csv")
+
     # 若有分頁 就獲取分頁連結
     if hasPagination(soup):
         # 獲取所有分頁連結
