@@ -14,8 +14,7 @@ def exportToCsv(products, filename):
     print("檔案名稱: " + filename)
     print("產品數量: " + str(len(products)))
 
-    # fieldnames = ["description", "images", "name"]
-    fieldnames = ["名稱", "描述", "分類", "圖片"]
+    fieldnames = ["名稱", "描述", "分類", "圖片", "簡短內容說明"]
 
     with open(filename, mode='w', encoding='utf-8', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -80,6 +79,12 @@ def filterDescription(text):
     return filtered_text
 
 
+# 縮圖換成原圖
+# e.g. "https://www.ouyun.com.tw/upload/t_20200807143137dlkwd1.jpg,https://www.ouyun.com.tw/upload/t_20200807143138uiern2.jpg"
+def replaceThumbnailToOriginalImg(img_link):
+    return re.sub(r"t_", "", img_link)
+
+
 # 檢查有沒有分頁 根據class pagination是否存在來判斷
 def hasPagination(soup):
     pagination = soup.find("ul", class_="pagination")
@@ -134,6 +139,8 @@ def getProductDetail(productLink):
     product_name = soup.find("div", class_="product-name").text.strip()
     # 獲取產品說明
     product_description = soup.find("div", class_="product-text").text.strip()
+    # 獲取產品詳細介紹
+    product_editor = soup.find("div", class_="products-editor").text.strip()
     # 獲取所有產品圖片連結 父元素為 ul list-h
     product_images = soup.find("ul", class_="list-h").find_all("img")
     product_images_links = []
@@ -145,6 +152,7 @@ def getProductDetail(productLink):
 
     product["名稱"] = product_name
     product["描述"] = product_description
+    product["簡短內容說明"] = product_editor
     product["圖片"] = ",".join(product_images_links)  # 圖片連結陣列轉字串
     return product
 
@@ -163,11 +171,19 @@ def filter_description(csv_file, new_csv_folder):
 
         # 遍歷每一行資料
         for row in reader:
-            description = row['描述']
             # 進行描述過濾
-            filtered_description = filterDescription(description)
+            filtered_description = filterDescription(row['描述'])
+            # 進行簡短說明過濾
+            filtered_editor = filterDescription(row['簡短內容說明'])
+            # 進行網址轉換 縮圖換成原圖
+            filtered_img_links = replaceThumbnailToOriginalImg(row['圖片'])
             # 更新該行資料的描述欄位
             row['描述'] = filtered_description
+            # 更新該行資料的簡短內容說明欄位
+            row['簡短內容說明'] = filtered_editor
+            # 更新該行資料的圖片欄位
+            row['圖片'] = filtered_img_links
+
             filtered_rows.append(row)
 
     # 覆寫CSV檔案，將過濾後的資料寫到新檔案中
