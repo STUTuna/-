@@ -1,15 +1,18 @@
 import threading
 import utils.util as util
 
-# 要
 categoryUrls = [
-    "https://www.ouyun.com.tw/products/1_28/1.htm",  # 活動櫃
-    "https://www.ouyun.com.tw/products/1_37/1.htm",  # 折合椅、鐵合椅
-    "https://www.ouyun.com.tw/products/1_32/1.htm",  # 金庫
+    # "https://www.ouyun.com.tw/products/1_27/1.htm",  # 鋼製辦公桌
+    # "https://www.ouyun.com.tw/products/1_35/1.htm",  # 培訓椅、訪客椅
+    # "https://www.ouyun.com.tw/products/1_11/1.htm",  # 培訓桌
+    "https://www.ouyun.com.tw/products/2_93/1.htm",  # 沙發
+    # "https://www.ouyun.com.tw/products/1_28/1.htm",  # 活動櫃
+    # "https://www.ouyun.com.tw/products/1_37/1.htm",  # 折合椅、鐵合椅
+    # "https://www.ouyun.com.tw/products/1_32/1.htm",  # 金庫
     # "https://www.ouyun.com.tw/products/1_31/1.htm",  # 鐵櫃
     # "https://www.ouyun.com.tw/products/1_86/1.htm",  # 辦公桌、書桌
     # "https://www.ouyun.com.tw/products/1_89/1.htm",  # 辦公椅、網椅
-    "https://www.ouyun.com.tw/products/1_26/1.htm"  # 會議桌
+    # "https://www.ouyun.com.tw/products/1_26/1.htm"  # 會議桌
     # "https://www.ouyun.com.tw/products/1_10/1.htm"  # 主管桌
 ]
 

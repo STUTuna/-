@@ -27,7 +27,7 @@ def exportToCsv(products, filename):
 # input: "整組　W197 x D180 x H75 公分 (桌面 : D88公分)　W356　$89000"
 # output: "整組　W197 x D180 x H75 公分 (桌面 : D88公分)"
 def removePriceWithW(text):
-    pattern = r"W\d+\s\$[\d,]+"
+    pattern = r"W\d+\s{0,4}\$[\d,]+"
     filtered_text = re.sub(pattern, "", text)
     return filtered_text
 
@@ -69,6 +69,7 @@ def removeExtraLines(text):
 # 過濾說明文字
 def filterDescription(text):
     filtered_text = text
+    # 將全形空白移除改成半形空白
     filtered_text = removePriceWithW(filtered_text)  # 移除價格資訊(包含W後面的數字)
     filtered_text = removePriceWithV(filtered_text)  # 移除價格資訊(包含V後面的數字)
     filtered_text = removePrice(filtered_text)  # 移除價格資訊($後面的數字)
