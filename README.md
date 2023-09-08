@@ -1,6 +1,5 @@
-# 家具爬蟲工具
+# 家具網站爬蟲工具
 目標網站： https://www.ouyun.com.tw/
-
 
 ## 匯出檔案
 ![匯出檔案](https://i.imgur.com/YWU55K5.png)
