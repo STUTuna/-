@@ -196,15 +196,7 @@ def filter_description(csv_file, new_csv_folder):
     print("過濾完成")
 
 
-def apply_description_filter(description):
-    # 在這裡使用你自己的過濾邏輯
-    # 以下是一個示例：將文字中的數字移除
-    filtered_description = re.sub(r'\d+', '', description)
-    return filtered_description
-
 # 主函數
-
-
 def main(categoryUrl):
     # 存放的資料夾
     saveFolder = "./raw_data/"
